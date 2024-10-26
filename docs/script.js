@@ -98,18 +98,18 @@ function changeLanguage(lang) {
     const saveButton = document.querySelector('button:nth-of-type(4)');
 
     if (lang === 'en') {
-        title.innerText = 'YG Smart Table Editor';
+        title.innerText = 'Dynamic Table';
         rowsLabel.innerText = 'Rows';
         columnsLabel.innerText = 'Columns';
-        registerButton.innerText = 'Create Table';
+        registerButton.innerText = 'Submit';
         resetButton.innerText = 'Reset';
         randomButton.innerText = 'Random Fill';
         saveButton.innerText = 'Save Table';
     } else {
-        title.innerText = 'ویرایشگر جدول هوشمند';
+        title.innerText = 'جدول پویا';
         rowsLabel.innerText = 'ردیف‌ها';
         columnsLabel.innerText = 'ستون‌ها';
-        registerButton.innerText = 'ساخت جدول';
+        registerButton.innerText = 'ثبت';
         resetButton.innerText = 'ریست';
         randomButton.innerText = 'پر کردن تصادفی';
         saveButton.innerText = 'ذخیره جدول';
@@ -138,34 +138,11 @@ function loadTableFromFile(event) {
     if (!file) {
         return;
     }
-    function loadTableFromFile(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        return;
-    }
-
-    if (file.type !== 'application/json') { // چک کردن نوع فایل
-        alert('لطفاً یک فایل JSON معتبر انتخاب کنید.');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        try {
-            const tableData = JSON.parse(e.target.result);
-            renderTable(tableData);
-        } catch (error) {
-            alert('فایل JSON معتبر نیست.');
-        }
-    };
-    reader.readAsText(file);
-}
     
     const reader = new FileReader();
     reader.onload = function(e) {
         const tableData = JSON.parse(e.target.result);
         const tableContainer = document.getElementById('table-container');
-        tableContainer.addEventListener('paste', handlePaste);
         tableContainer.innerHTML = '';
 
         let table = document.createElement('table');
@@ -190,23 +167,7 @@ function loadTableFromFile(event) {
     
     reader.readAsText(file);
 }
-function handlePaste(event) {
-    event.preventDefault();
-    const text = event.clipboardData.getData('text/plain').split('\n').map(line => line.trim()).filter(line => line);
-    const table = document.querySelector('table');
-    
-    if (table) {
-        let columnCount = table.rows[0].cells.length;
 
-        for (let j = 0; j < columnCount; j++) {
-            for (let i = 0; i < text.length; i++) {
-                if (i < table.rows.length) {
-                    table.rows[i].cells[j].innerText = text[i];
-                }
-            }
-        }
-    }
-}
 // Drag and drop functions
 function dragStart(e) {
     e.dataTransfer.setData('text/plain', e.target.rowIndex);
