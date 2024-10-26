@@ -100,5 +100,6 @@ footer {
     width: 100%;
     position: fixed;
     bottom: -15px;
+    z-index: -1;
 }
 
