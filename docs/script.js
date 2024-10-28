@@ -4,6 +4,7 @@ function generateTable() {
     const columns = document.getElementById('columns').value;
     const rows = document.getElementById('rows').value;
     const tableContainer = document.getElementById('table-container');
+
     tableContainer.innerHTML = '';
 
     let table = document.createElement('table');
@@ -14,17 +15,21 @@ function generateTable() {
             td.contentEditable = true;
             tr.appendChild(td);
         }
+        tr.draggable = true; // Enable dragging
+        tr.addEventListener('dragstart', dragStart);
+        tr.addEventListener('dragover', dragOver);
+        tr.addEventListener('drop', drop);
         table.appendChild(tr);
     }
     tableContainer.appendChild(table);
 
+    // Add copy buttons for each column
     addCopyButtons(columns);
 }
 
 function addCopyButtons(columns) {
     const tableContainer = document.getElementById('table-container');
     const copyButtonsContainer = document.createElement('div');
-    copyButtonsContainer.classList.add('copy-buttons');
 
     for (let j = 0; j < columns; j++) {
         let copyButton = document.createElement('button');
@@ -33,29 +38,30 @@ function addCopyButtons(columns) {
         copyButton.onclick = () => copyColumn(j);
         copyButtonsContainer.appendChild(copyButton);
     }
+    
     tableContainer.appendChild(copyButtonsContainer);
 }
 
 function copyColumn(columnIndex) {
     const table = document.querySelector('table');
     let columnData = [];
-    
     for (let i = 0; i < table.rows.length; i++) {
-        const cellContent = table.rows[i].cells[columnIndex].innerText;
-        columnData.push(cellContent);
+        columnData.push(table.rows[i].cells[columnIndex].innerText);
     }
-
     const textToCopy = columnData.join('\n');
     navigator.clipboard.writeText(textToCopy).then(() => {
         alert(currentLanguage === 'fa' ? 'محتوا کپی شد!' : 'Content copied!');
-    }).catch(err => console.error('Error copying text: ', err));
+    });
 }
 
 function resetTable() {
     document.getElementById('table-container').innerHTML = '';
     document.getElementById('rows').value = '';
     document.getElementById('columns').value = '';
+    document.getElementById('fileInput').value = ''; // Reset file input
+    document.getElementById('fileInput').setAttribute('placeholder', 'Choose a file...'); // Reset placeholder
 }
+
 
 function randomFill() {
     const columns = document.getElementById('columns').value;
@@ -77,6 +83,36 @@ function randomFill() {
                 table.rows[i].cells[j].innerText = Math.floor(Math.random() * 20);
             }
         }
+    }
+}
+
+function changeLanguage(lang) {
+    currentLanguage = lang;
+    resetTable();
+    const title = document.getElementById('tableTitle');
+    const rowsLabel = document.querySelector('label[for="rows"]');
+    const columnsLabel = document.querySelector('label[for="columns"]');
+    const registerButton = document.querySelector('button:nth-of-type(1)');
+    const resetButton = document.querySelector('button:nth-of-type(2)');
+    const randomButton = document.querySelector('button:nth-of-type(3)');
+    const saveButton = document.querySelector('button:nth-of-type(4)');
+
+    if (lang === 'en') {
+        title.innerText = 'YG Smart Table Editor';
+        rowsLabel.innerText = 'Rows';
+        columnsLabel.innerText = 'Columns';
+        registerButton.innerText = 'Create Table';
+        resetButton.innerText = 'Reset';
+        randomButton.innerText = 'Random Fill';
+        saveButton.innerText = 'Save Table';
+    } else {
+        title.innerText = 'ویرایشگر جدول هوشمند';
+        rowsLabel.innerText = 'ردیف‌ها';
+        columnsLabel.innerText = 'ستون‌ها';
+        registerButton.innerText = 'ساخت جدول';
+        resetButton.innerText = 'ریست';
+        randomButton.innerText = 'پر کردن تصادفی';
+        saveButton.innerText = 'ذخیره جدول';
     }
 }
 
@@ -102,6 +138,11 @@ function loadTableFromFile(event) {
     if (!file) {
         return;
     }
+    function loadTableFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
 
     if (file.type !== 'application/json') { // چک کردن نوع فایل
         alert('لطفاً یک فایل JSON معتبر انتخاب کنید.');
@@ -109,9 +150,22 @@ function loadTableFromFile(event) {
     }
 
     const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const tableData = JSON.parse(e.target.result);
+            renderTable(tableData);
+        } catch (error) {
+            alert('فایل JSON معتبر نیست.');
+        }
+    };
+    reader.readAsText(file);
+}
+    
+    const reader = new FileReader();
     reader.onload = function(e) {
         const tableData = JSON.parse(e.target.result);
         const tableContainer = document.getElementById('table-container');
+        tableContainer.addEventListener('paste', handlePaste);
         tableContainer.innerHTML = '';
 
         let table = document.createElement('table');
@@ -123,11 +177,54 @@ function loadTableFromFile(event) {
                 td.innerText = cellData;
                 tr.appendChild(td);
             });
+            tr.draggable = true; // Enable dragging
+            tr.addEventListener('dragstart', dragStart);
+            tr.addEventListener('dragover', dragOver);
+            tr.addEventListener('drop', drop);
             table.appendChild(tr);
         });
         tableContainer.appendChild(table);
+
         addCopyButtons(tableData[0].length); // اضافه کردن دکمه‌های کپی
     };
     
     reader.readAsText(file);
+}
+function handlePaste(event) {
+    event.preventDefault();
+    const text = event.clipboardData.getData('text/plain').split('\n').map(line => line.trim()).filter(line => line);
+    const table = document.querySelector('table');
+    
+    if (table) {
+        let columnCount = table.rows[0].cells.length;
+
+        for (let j = 0; j < columnCount; j++) {
+            for (let i = 0; i < text.length; i++) {
+                if (i < table.rows.length) {
+                    table.rows[i].cells[j].innerText = text[i];
+                }
+            }
+        }
+    }
+}
+// Drag and drop functions
+function dragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.rowIndex);
+    e.target.classList.add('dragging');
+}
+
+function dragOver(e) {
+    e.preventDefault();
+}
+
+function drop(e) {
+    e.preventDefault();
+    const draggedRowIndex = e.dataTransfer.getData('text/plain');
+    const targetRow = e.target.closest('tr');
+    const table = targetRow.closest('table');
+
+    if (targetRow && draggedRowIndex !== targetRow.rowIndex) {
+        const draggedRow = table.rows[draggedRowIndex];
+        table.insertBefore(draggedRow, targetRow);
+    }
 }
